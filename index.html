@@ -59,7 +59,9 @@
     let lineAngle = 90;
     let laserActive = false;
 
-    const laserSpeed = 30;
+    // Adjust laser properties
+    const laserLength = 40;  // Shorter laser
+    const laserSpeed = 40;   // Faster laser
     let laserX, laserY, laserDirX, laserDirY;
 
     let lineEndX, lineEndY;
@@ -203,7 +205,11 @@
             laserX += laserSpeed * laserDirX;
             laserY += laserSpeed * laserDirY;
 
-            if (laserY < 0 || laserX < 0 || laserX > canvas.width) {
+            // Keep the laser within the game board
+            if (
+                laserX < boardX || laserX > boardX + boardWidth ||
+                laserY < boardY || laserY > boardY + boardHeight
+            ) {
                 laserActive = false;
             }
 
@@ -240,14 +246,5 @@
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(lineEndX, lineEndY);
-            ctx.lineTo(laserX, laserY);
-            ctx.stroke();
-        }
-
-        requestAnimationFrame(gameLoop);
-    }
-
-    requestAnimationFrame(gameLoop);
-</script>
-</body>
-</html>
+            ctx.lineTo(
+                lineEndX
