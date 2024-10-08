@@ -2,22 +2,252 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello World</title>
+    <title>Game Board</title>
     <style>
         body {
-            background-color: blue;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
-            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background-color: black;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <h1>Hello, World!</h1>
+<div id="score">Score: 0</div>
+<canvas id="gameCanvas"></canvas>
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const scoreElement = document.getElementById('score');
+
+    const boardWidth = canvas.width * 0.8;
+    const boardHeight = canvas.height * 0.8;
+
+    const boardX = (canvas.width - boardWidth) / 2;
+    const boardY = (canvas.height - boardHeight) / 2;
+
+    const balloonColors = ['blue', 'red', 'green', 'yellow', 'purple'];
+    const balloonRadius = 20;
+    let balloonSpeed = 0.5;
+
+    let balloonX, balloonY, balloonColor;
+    let score = 0;
+
+    function resetBalloon() {
+        balloonX = Math.random() * (boardWidth - 2 * balloonRadius) + boardX + balloonRadius;
+        balloonY = -balloonRadius;
+        balloonColor = balloonColors[Math.floor(Math.random() * balloonColors.length)];
+    }
+
+    resetBalloon();
+
+    const lineColor = 'black';
+    const lineLength = 60;
+    let lineAngle = 90;
+    let laserActive = false;
+
+    const laserSpeed = 30;
+    let laserX, laserY, laserDirX, laserDirY;
+
+    let lineEndX, lineEndY;
+
+    let leftArrowPressed = false;
+    let rightArrowPressed = false;
+    let angleChangeInterval;
+    let zKeyPressed = false;
+    let xKeyPressed = false;
+
+    let linePosition = { x: boardX, y: boardY };
+
+    function startAngleChange(direction) {
+        const intervalTime = zKeyPressed ? 5 : 10;
+        if (!angleChangeInterval) {
+            angleChangeInterval = setInterval(() => {
+                if (direction === 'left') {
+                    lineAngle += 1;
+                } else if (direction === 'right') {
+                    lineAngle -= 1;
+                }
+                lineAngle %= 360;
+            }, intervalTime);
+        }
+    }
+
+    function stopAngleChange() {
+        clearInterval(angleChangeInterval);
+        angleChangeInterval = null;
+    }
+
+    function moveLine(direction) {
+        if (direction === 'left') {
+            if (linePosition.x > boardX && linePosition.y === boardY) {
+                linePosition.x -= laserSpeed;
+                if (linePosition.x < boardX) linePosition.x = boardX;
+            } else if (linePosition.x === boardX && linePosition.y < boardY + boardHeight) {
+                linePosition.y += laserSpeed;
+                if (linePosition.y > boardY + boardHeight) linePosition.y = boardY + boardHeight;
+            } else if (linePosition.x < boardX + boardWidth && linePosition.y === boardY + boardHeight) {
+                linePosition.x += laserSpeed;
+                if (linePosition.x > boardX + boardWidth) linePosition.x = boardX + boardWidth;
+            } else if (linePosition.x === boardX + boardWidth && linePosition.y > boardY) {
+                linePosition.y -= laserSpeed;
+                if (linePosition.y < boardY) linePosition.y = boardY;
+            }
+        } else if (direction === 'right') {
+            if (linePosition.x < boardX + boardWidth && linePosition.y === boardY) {
+                linePosition.x += laserSpeed;
+                if (linePosition.x > boardX + boardWidth) linePosition.x = boardX + boardWidth;
+            } else if (linePosition.x === boardX + boardWidth && linePosition.y < boardY + boardHeight) {
+                linePosition.y += laserSpeed;
+                if (linePosition.y > boardY + boardHeight) linePosition.y = boardY + boardHeight;
+            } else if (linePosition.x > boardX && linePosition.y === boardY + boardHeight) {
+                linePosition.x -= laserSpeed;
+                if (linePosition.x < boardX) linePosition.x = boardX;
+            } else if (linePosition.x === boardX && linePosition.y > boardY) {
+                linePosition.y -= laserSpeed;
+                if (linePosition.y < boardY) linePosition.y = boardY;
+            }
+        }
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (event.code === 'Space' && !laserActive) {
+            laserActive = true;
+            laserX = lineEndX;
+            laserY = lineEndY;
+            laserDirX = Math.cos(lineAngle * Math.PI / 180);
+            laserDirY = -Math.sin(lineAngle * Math.PI / 180);
+        } else if (event.code === 'ArrowLeft' && !leftArrowPressed) {
+            leftArrowPressed = true;
+            if (xKeyPressed) {
+                moveLine('left');
+            } else {
+                startAngleChange('left');
+            }
+        } else if (event.code === 'ArrowRight' && !rightArrowPressed) {
+            rightArrowPressed = true;
+            if (xKeyPressed) {
+                moveLine('right');
+            } else {
+                startAngleChange('right');
+            }
+        } else if (event.code === 'KeyZ') {
+            zKeyPressed = true;
+            if (leftArrowPressed) {
+                stopAngleChange();
+                startAngleChange('left');
+            } else if (rightArrowPressed) {
+                stopAngleChange();
+                startAngleChange('right');
+            }
+        } else if (event.code === 'KeyX') {
+            xKeyPressed = true;
+        }
+    });
+
+    document.addEventListener('keyup', (event) => {
+        if (event.code === 'ArrowLeft') {
+            leftArrowPressed = false;
+            if (!rightArrowPressed) {
+                stopAngleChange();
+            }
+        } else if (event.code === 'ArrowRight') {
+            rightArrowPressed = false;
+            if (!leftArrowPressed) {
+                stopAngleChange();
+            }
+        } else if (event.code === 'KeyZ') {
+            zKeyPressed = false;
+            if (leftArrowPressed) {
+                stopAngleChange();
+                startAngleChange('left');
+            } else if (rightArrowPressed) {
+                stopAngleChange();
+                startAngleChange('right');
+            }
+        } else if (event.code === 'KeyX') {
+            xKeyPressed = false;
+        }
+    });
+
+    function updateScore() {
+        score += 1;
+        scoreElement.innerText = 'Score: ' + score;
+    }
+
+    function gameLoop() {
+        const lineStartX = linePosition.x;
+        const lineStartY = linePosition.y;
+        lineEndX = lineStartX + lineLength * Math.cos(lineAngle * Math.PI / 180);
+        lineEndY = lineStartY - lineLength * Math.sin(lineAngle * Math.PI / 180);
+
+        balloonY += balloonSpeed;
+        if (balloonY - balloonRadius > canvas.height) {
+            resetBalloon();
+        }
+
+        if (laserActive) {
+            laserX += laserSpeed * laserDirX;
+            laserY += laserSpeed * laserDirY;
+
+            if (laserY < 0 || laserX < 0 || laserX > canvas.width) {
+                laserActive = false;
+            }
+
+            if (
+                laserX >= balloonX - balloonRadius && laserX <= balloonX + balloonRadius &&
+                laserY >= balloonY - balloonRadius && laserY <= balloonY + balloonRadius
+            ) {
+                resetBalloon();
+                laserActive = false;
+                updateScore();
+                balloonSpeed += 0.1;
+            }
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = 'white';
+        ctx.fillRect(boardX, boardY, boardWidth, boardHeight);
+
+        ctx.fillStyle = balloonColor;
+        ctx.beginPath();
+        ctx.arc(balloonX, balloonY, balloonRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(lineStartX, lineStartY);
+        ctx.lineTo(lineEndX, lineEndY);
+        ctx.stroke();
+
+        if (laserActive) {
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(lineEndX, lineEndY);
+            ctx.lineTo(laserX, laserY);
+            ctx.stroke();
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    requestAnimationFrame(gameLoop);
+</script>
 </body>
 </html>
